@@ -2,106 +2,149 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Panel Admina - AC Drift League</title>
+    <title>Panel Organizatora - AC Drift League</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans p-6">
-    <div class="max-w-4xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-xl space-y-8">
+<body class="bg-slate-950 text-slate-100 font-sans p-6 hidden" id="admin-body">
+
+    <div class="max-w-5xl mx-auto space-y-8">
         <div class="flex justify-between items-center border-b border-slate-800 pb-4">
-            <h1 class="text-2xl font-black text-amber-400 uppercase tracking-wide">Panel Zarządzania Streamem</h1>
+            <h1 class="text-2xl font-black text-amber-400 uppercase tracking-tight">Panel Sterowania Ligą</h1>
             <a href="index.html" class="text-sm text-slate-400 hover:text-white transition">← Powrót do strony głównej</a>
         </div>
 
-        <div class="space-y-4">
-            <h2 class="text-lg font-bold text-slate-300">1. Aktualny przejazd kwalifikacyjny (Live na Streamie)</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <div>
-                    <label class="block text-xs uppercase text-slate-400 mb-1 font-bold">Kierowca</label>
-                    <input type="text" id="quali-driver" value="JOHANNIS DIOP" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white focus:outline-none focus:border-amber-500">
-                </div>
-                <div>
-                    <label class="block text-xs uppercase text-slate-400 mb-1 font-bold">Samochód</label>
-                    <input type="text" id="quali-car" value="NISSAN 180SX" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white focus:outline-none focus:border-amber-500">
-                </div>
-                <div>
-                    <label class="block text-xs uppercase text-slate-400 mb-1 font-bold">Wynik R1</label>
-                    <input type="text" id="quali-r1" value="84.50" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white focus:outline-none focus:border-amber-500">
-                </div>
-                <div>
-                    <label class="block text-xs uppercase text-slate-400 mb-1 font-bold">Wynik R2</label>
-                    <input type="text" id="quali-r2" value="--" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white focus:outline-none focus:border-amber-500">
-                </div>
+        <section class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
+            <h2 class="text-lg font-bold text-slate-300 mb-4 border-l-4 border-red-500 pl-2 uppercase tracking-wide text-sm">Weryfikacja nadesłanych zgłoszeń</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead>
+                        <tr class="text-slate-400 border-b border-slate-800 uppercase text-xs font-bold">
+                            <th class="p-3">Kierowca</th>
+                            <th class="p-3">Auto</th>
+                            <th class="p-3">Team</th>
+                            <th class="p-3">Zarządzaj</th>
+                        </tr>
+                    </thead>
+                    <tbody id="req-table-body" class="divide-y divide-slate-800">
+                        </tbody>
+                </table>
             </div>
-            <button onclick="updateQualiStream()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-6 py-2.5 rounded text-sm uppercase tracking-wider transition shadow-lg shadow-amber-500/10">
-                Wyślij na Stream (Kwalifikacje)
-            </button>
-        </div>
+        </section>
 
-        <div class="space-y-4 border-t border-slate-800 pt-6">
-            <h2 class="text-lg font-bold text-slate-300">2. Aktualna Para TOP 32 / TOP 16</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
-                    <span class="text-xs font-black text-red-500 uppercase">Kierowca LEAD</span>
-                    <input type="text" id="battle-lead-name" value="HUGO HEUZE" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-sm" placeholder="Nazwa gracza">
-                    <input type="text" id="battle-lead-car" value="TOYOTA SUPRA" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-sm" placeholder="Auto">
-                </div>
-                <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl space-y-3">
-                    <span class="text-xs font-black text-blue-500 uppercase">Kierowca CHASE</span>
-                    <input type="text" id="battle-chase-name" value="ANDRIS KLEINBERGS" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-sm" placeholder="Nazwa gracza">
-                    <input type="text" id="battle-chase-car" value="BMW E36" class="w-full bg-slate-900 border border-slate-800 rounded p-2 text-sm" placeholder="Auto">
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
+        <section class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4 shadow-xl">
+            <h2 class="text-lg font-bold text-slate-300 border-l-4 border-amber-500 pl-2 uppercase tracking-wide text-sm">Ocenianie Kwalifikacji & Kontrola Streamu</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                    <label class="block text-xs uppercase text-slate-400 mb-1 font-bold">Faza zawodów</label>
-                    <input type="text" id="battle-stage" value="TOP 48" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm">
+                    <label class="block text-xs uppercase text-slate-400 mb-1 font-semibold">Kierowca na torze</label>
+                    <select id="quali-select" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white outline-none focus:border-amber-500" onchange="fillQualiFields()">
+                        <option value="">Wybierz kierowcę...</option>
+                    </select>
                 </div>
                 <div>
-                    <label class="block text-xs uppercase text-slate-400 mb-1 font-bold">Lokalizacja / Tor</label>
-                    <input type="text" id="battle-track" value="YAS MARINA" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm">
+                    <label class="block text-xs uppercase text-slate-400 mb-1 font-semibold">Punkty Przejazd 1 (R1)</label>
+                    <input type="number" id="score-r1" step="0.01" min="0" max="100" value="0.00" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase text-slate-400 mb-1 font-semibold">Punkty Przejazd 2 (R2)</label>
+                    <input type="number" id="score-r2" step="0.01" min="0" max="100" value="0.00" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white outline-none focus:border-amber-500">
+                </div>
+                <div class="flex items-end gap-2">
+                    <button onclick="saveScores()" class="w-full bg-emerald-600 hover:bg-emerald-700 font-bold py-2 rounded text-sm transition">ZAPISZ</button>
+                    <button onclick="sendToQualiStream()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-2 rounded text-sm uppercase transition tracking-wider">OBS LIVE</button>
                 </div>
             </div>
-            <button onclick="updateBattleStream()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-2.5 rounded text-sm uppercase tracking-wider transition shadow-lg shadow-red-600/10">
-                Wyślij na Stream (Pojedynek)
-            </button>
-        </div>
+        </section>
     </div>
 
     <script>
         const SUPABASE_URL = "https://pjnthnehyprgzvfhtqtx.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqbnRobmVoeXByZ3p2Zmh0cXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNDMwMjUsImV4cCI6MjA5ODkxOTAyNX0.EXmNJE8-6k1w5_39Vr909JXlipgPzU2s3WX54lE619o";
-        const supabase = @supabase/supabase-js.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // ⚠️ TUTAJ WPISZ SWOJE UNIKALNE ID Z DISCORDA
+        const ADMIN_DISCORD_ID = "859457790745378818"; 
+        
+        let allDriversList = [];
 
-        // Funkcje wysyłające dane do tabel Supabase z włączonym Realtime
-        async function updateQualiStream() {
-            const driver = document.getElementById('quali-driver').value;
-            const car = document.getElementById('quali-car').value;
-            const r1 = document.getElementById('quali-r1').value;
-            const r2 = document.getElementById('quali-r2').value;
-
-            // Zapisujemy stan do bazy danych Supabase (w tabeli o nazwie 'stream_state')
-            const { error } = await supabase.from('stream_state').upsert({ 
-                id: 'current_quali', 
-                data: { driver, car, r1, r2 } 
-            });
-            if (!error) alert("Zaktualizowano nakładkę kwalifikacji w OBS!");
+        async function verifyAdmin() {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (!user || user.user_metadata.provider_id !== ADMIN_DISCORD_ID) {
+                alert("Brak uprawnień. Tylko główny organizator ma dostęp do tego panelu.");
+                window.location.href = "index.html";
+            } else {
+                document.getElementById('admin-body').classList.remove('hidden');
+                loadAdminData();
+            }
         }
 
-        async function updateBattleStream() {
-            const leadName = document.getElementById('battle-lead-name').value;
-            const leadCar = document.getElementById('battle-lead-car').value;
-            const chaseName = document.getElementById('battle-chase-name').value;
-            const chaseCar = document.getElementById('battle-chase-car').value;
-            const stage = document.getElementById('battle-stage').value;
-            const track = document.getElementById('battle-track').value;
+        async function loadAdminData() {
+            const { data: drivers } = await supabaseClient.from('drivers').select('*');
+            allDriversList = drivers || [];
 
-            const { error } = await supabase.from('stream_state').upsert({ 
-                id: 'current_battle', 
-                data: { leadName, leadCar, chaseName, chaseCar, stage, track } 
-            });
-            if (!error) alert("Zaktualizowano nakładkę pojedynku w OBS!");
+            // Render wniosków o dołączenie
+            const pending = allDriversList.filter(d => d.status === 'OCZEKUJE');
+            const tbody = document.getElementById('req-table-body');
+            tbody.innerHTML = pending.length === 0 ? `<tr><td colspan="4" class="p-3 text-slate-500 text-center italic">Brak oczekujących zgłoszeń zawodników.</td></tr>` : 
+            pending.map(d => `
+                <tr class="hover:bg-slate-900/20">
+                    <td class="p-3 font-bold text-white">${d.username}</td>
+                    <td class="p-3 text-slate-300">${d.car}</td>
+                    <td class="p-3 text-slate-400">${d.team}</td>
+                    <td class="p-3 space-x-2">
+                        <button onclick="updateStatus('${d.id}', 'ZAAKCEPTOWANY')" class="bg-emerald-600 hover:bg-emerald-700 text-xs px-3 py-1.5 rounded font-bold transition">Akceptuj</button>
+                        <button onclick="updateStatus('${d.id}', 'ODRZUCONY')" class="bg-red-600 hover:bg-red-700 text-xs px-3 py-1.5 rounded font-bold transition">Odrzuć</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Wypełnij listę rozwijaną kierowców do oceny
+            const accepted = allDriversList.filter(d => d.status === 'ZAAKCEPTOWANY');
+            const select = document.getElementById('quali-select');
+            select.innerHTML = '<option value="">Wybierz kierowcę...</option>' + accepted.map(d => `<option value="${d.id}">${d.username}</option>`).join('');
         }
+
+        async function updateStatus(id, newStatus) {
+            await supabaseClient.from('drivers').update({ status: newStatus }).eq('id', id);
+            loadAdminData();
+        }
+
+        function fillQualiFields() {
+            const id = document.getElementById('quali-select').value;
+            const driver = allDriversList.find(d => d.id === id);
+            if(driver) {
+                document.getElementById('score-r1').value = driver.score_r1;
+                document.getElementById('score-r2').value = driver.score_r2;
+            }
+        }
+
+        async function saveScores() {
+            const id = document.getElementById('quali-select').value;
+            if(!id) return alert("Wybierz kierowcę z listy!");
+            const r1 = parseFloat(document.getElementById('score-r1').value) || 0;
+            const r2 = parseFloat(document.getElementById('score-r2').value) || 0;
+            const best = Math.max(r1, r2);
+
+            await supabaseClient.from('drivers').update({ score_r1: r1, score_r2: r2, best_score: best }).eq('id', id);
+            alert("Punkty zostały zapisane w bazie danych!");
+            loadAdminData();
+        }
+
+        async function sendToQualiStream() {
+            const id = document.getElementById('quali-select').value;
+            if(!id) return alert("Musisz najpierw wybrać kierowcę!");
+            const driver = allDriversList.find(d => d.id === id);
+            const r1 = parseFloat(document.getElementById('score-r1').value) || 0;
+            const r2 = parseFloat(document.getElementById('score-r2').value) || 0;
+
+            await supabaseClient.from('stream_state').upsert({
+                id: 'current_quali',
+                data: { driver: driver.username, car: driver.car, team: driver.team, country: driver.country, r1: r1.toFixed(2), r2: r2.toFixed(2) }
+            });
+            alert("Zaktualizowano grafikę ekranową w OBS!");
+        }
+
+        verifyAdmin();
     </script>
 </body>
 </html>
