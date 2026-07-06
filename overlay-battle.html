@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>HUD Pojedynku - Stream Overlay</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Agresywne, wyścigowe ścięcia boków (skew) */
+        .skew-block { transform: skewX(-12deg); }
+        .unskew { transform: skewX(12deg); }
+    </style>
+</head>
+<body class="bg-transparent overflow-hidden w-[1920px] h-[1080px] relative text-white font-sans antialiased select-none">
+
+    <div class="absolute top-10 left-1/2 -translate-x-1/2 w-[1400px] flex justify-between items-center">
+        
+        <div class="skew-block bg-slate-900 border-l-8 border-red-600 w-[500px] h-16 flex items-center px-6 shadow-2xl relative overflow-hidden">
+            <div class="unskew flex flex-col">
+                <span id="lead-name" class="font-black text-xl tracking-wide uppercase">Ładowanie...</span>
+                <span id="lead-car" class="text-xs font-bold text-red-500 uppercase tracking-widest mt-0.5">---</span>
+            </div>
+            <div class="unskew absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-black tracking-wider border border-slate-700 px-2 py-0.5 rounded bg-slate-950">LEAD</div>
+        </div>
+
+        <div class="flex flex-col items-center justify-center w-[300px]">
+            <div class="skew-block bg-red-600 px-6 py-1 shadow-lg z-10">
+                <span id="battle-stage" class="unskew block font-black text-sm tracking-widest text-slate-950 text-center uppercase">---</span>
+            </div>
+            <div class="skew-block bg-slate-950 border border-slate-800 px-8 py-2 -mt-1 w-[260px] shadow-xl">
+                <span id="battle-track" class="unskew block font-black text-lg tracking-wider text-center uppercase">---</span>
+            </div>
+        </div>
+
+        <div class="skew-block bg-slate-900 border-r-8 border-blue-500 w-[500px] h-16 flex items-center justify-between px-6 shadow-2xl relative overflow-hidden">
+            <div class="unskew absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-black tracking-wider border border-slate-700 px-2 py-0.5 rounded bg-slate-950">CHASE</div>
+            <div class="unskew flex flex-col text-right w-full pr-12">
+                <span id="chase-name" class="font-black text-xl tracking-wide uppercase">Ładowanie...</span>
+                <span id="chase-car" class="text-xs font-bold text-blue-400 uppercase tracking-widest mt-0.5">---</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://pjnthnehyprgzvfhtqtx.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqbnRobmVoeXByZ3p2Zmh0cXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNDMwMjUsImV4cCI6MjA5ODkxOTAyNX0.EXmNJE8-6k1w5_39Vr909JXlipgPzU2s3WX54lE619o";
+        const supabase = @supabase/supabase-js.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Pobieranie początkowego stanu
+        async function initOverlay() {
+            const { data } = await supabase.from('stream_state').select('*').eq('id', 'current_battle').single();
+            if (data) render(data.data);
+        }
+
+        function render(data) {
+            document.getElementById('lead-name').innerText = data.leadName;
+            document.getElementById('lead-car').innerText = data.leadCar;
+            document.getElementById('chase-name').innerText = data.chaseName;
+            document.getElementById('chase-car').innerText = data.chaseCar;
+            document.getElementById('battle-stage').innerText = data.stage;
+            document.getElementById('battle-track').innerText = data.track;
+        }
+
+        // FUNKCJA SUBSKRYPCJI REALTIME (Klucz do natychmiastowych zmian bez przeładowania)
+        supabase.channel('public:stream_state')
+            .on('postgres_changes', { event: 'UPDATE', filter: "id=eq.current_battle", schema: 'public', table: 'stream_state' }, payload => {
+                render(payload.new.data);
+            })
+            .subscribe();
+
+        initOverlay();
+    </script>
+</body>
+</html>
