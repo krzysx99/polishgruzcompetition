@@ -105,16 +105,36 @@
         async function checkUserStatus() {
             const { data } = await supabaseClient.from('drivers').select('status').eq('id', currentUser.id).single();
             if (data) {
-                let colorClass = "text-amber-400";
-                if(data.status === 'ZAAKCEPTOWANY') colorClass = "text-emerald-400";
-                if(data.status === 'ODRZUCONY') colorClass = "text-red-500";
+                if (data.status === 'ODRZUCONY') {
+                    // Wyświetla komunikat o odrzuceniu i dodaje przycisk ponownego zapisu
+                    document.getElementById('registration-form').innerHTML = `
+                        <div class="p-4 bg-slate-950 border border-slate-800 rounded-lg space-y-3">
+                            <p class="text-sm text-slate-400">Twoje zgłoszenie zostało zaktualizowane:</p>
+                            <p class="text-lg font-black uppercase tracking-wider text-red-500">ODRZUCONY</p>
+                            <p class="text-xs text-slate-500">Jeśli to była pomyłka organizatora, możesz wyczyścić zgłoszenie i wysłać je ponownie.</p>
+                            <button onclick="resetRegistration()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2 rounded transition border border-slate-700">Zgłoś się ponownie</button>
+                        </div>
+                    `;
+                } else {
+                    let colorClass = data.status === 'ZAAKCEPTOWANY' ? "text-emerald-400" : "text-amber-400";
+                    document.getElementById('registration-form').innerHTML = `
+                        <div class="p-4 bg-slate-950 border border-slate-800 rounded-lg">
+                            <p class="text-sm text-slate-400">Twoje zgłoszenie zostało wysłane. Aktualny status:</p>
+                            <p class="text-lg font-black uppercase tracking-wider ${colorClass} mt-1">${data.status}</p>
+                        </div>
+                    `;
+                }
+            }
+        }
 
-                document.getElementById('registration-form').innerHTML = `
-                    <div class="p-4 bg-slate-950 border border-slate-800 rounded-lg">
-                        <p class="text-sm text-slate-400">Twoje zgłoszenie zostało wysłane. Aktualny status:</p>
-                        <p class="text-lg font-black uppercase tracking-wider ${colorClass} mt-1">${data.status}</p>
-                    </div>
-                `;
+        async function resetRegistration() {
+            if (!confirm("Czy na pewno chcesz usunąć stare zgłoszenie i zarejestrować się ponownie?")) return;
+            
+            const { error } = await supabaseClient.from('drivers').delete().eq('id', currentUser.id);
+            if (error) {
+                alert("Błąd podczas resetowania: " + error.message);
+            } else {
+                window.location.reload();
             }
         }
 
@@ -148,7 +168,6 @@
             const { data: allDrivers } = await supabaseClient.from('drivers').select('*').order('best_score', { ascending: false });
             const drivers = allDrivers || [];
             
-            // Renderuj zaakceptowanych kierowców
             const accepted = drivers.filter(d => d.status === 'ZAAKCEPTOWANY');
             const tbody = document.getElementById('drivers-table-body');
             if(accepted.length === 0) {
@@ -166,7 +185,6 @@
                 `).join('');
             }
 
-            // Renderuj TOP 5 Kwalifikacji (sortowane od najwyższego wyniku)
             const qualified = accepted.filter(d => d.best_score > 0).slice(0, 5);
             const top5Container = document.getElementById('top5-container');
             if(qualified.length === 0) {
@@ -183,7 +201,6 @@
                 `).join('');
             }
 
-            // Generowanie drabinki turniejowej
             generateBracket(accepted.filter(d => d.best_score > 0));
         }
 
@@ -211,7 +228,6 @@
         async function logout() { await supabaseClient.auth.signOut(); window.location.reload(); }
 
         checkUser();
-        // Słuchanie zmian live (Realtime)
         supabaseClient.channel('public:drivers').on('postgres_changes', { event: '*', schema: 'public', table: 'drivers' }, () => { loadData(); }).subscribe();
     </script>
 </body>
