@@ -37,7 +37,7 @@
                     <input type="text" id="reg-team" placeholder="np. Polish Gruz Team" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white outline-none focus:border-red-500">
                 </div>
                 <div>
-                    <label class="block text-xs uppercase text-slate-400 mb-1">Kod Kraju (np. PL, FR, DE)</label>
+                    <label class="block text-xs uppercase text-slate-400 mb-1">Kod Kraju (np. PL)</label>
                     <input type="text" id="reg-country" placeholder="PL" maxlength="2" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white uppercase outline-none focus:border-red-500">
                 </div>
                 <button onclick="registerDriver()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-2 rounded transition cursor-pointer">Wyślij zgłoszenie</button>
@@ -47,7 +47,7 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-2 space-y-4">
-                <h2 id="table-title" class="text-xl font-black text-slate-200 uppercase tracking-tight border-l-4 border-red-500 pl-2">Zaakceptowani Kierowcy (Runda 1)</h2>
+                <h2 id="table-title" class="text-xl font-black text-slate-200 uppercase tracking-tight border-l-4 border-red-500 pl-2">Zaakceptowani Kierowcy</h2>
                 <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
                     <table class="w-full text-left border-collapse">
                         <thead>
@@ -58,22 +58,22 @@
                             </tr>
                         </thead>
                         <tbody id="drivers-table-body" class="divide-y divide-slate-800 text-sm">
-                            <tr><td colspan="3" class="p-4 text-center text-slate-500 italic">Ładowanie danych...</td></tr>
+                            <tr><td colspan="3" class="p-4 text-center text-slate-500 italic">Ładowanie...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
             <div class="space-y-4">
-                <h2 class="text-xl font-black text-slate-200 uppercase tracking-tight border-l-4 border-amber-500 pl-2">TOP 5 Kwalifikacji</h2>
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2 shadow-lg" id="top5-container">
-                    <div class="text-slate-500 italic text-sm text-center py-4">Brak wyników...</div>
+                <h2 class="text-xl font-black text-slate-200 uppercase tracking-tight border-l-4 border-amber-500 pl-2">Wyniki Kwalifikacji (Pełna Lista)</h2>
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2 shadow-lg max-h-[500px] overflow-y-auto" id="quali-container">
+                    <div class="text-slate-500 italic text-sm text-center py-4">Brak przejazdów...</div>
                 </div>
             </div>
         </div>
 
         <section class="space-y-4">
-            <h2 class="text-xl font-black text-slate-200 uppercase tracking-tight border-l-4 border-blue-500 pl-2">Drabinka pucharowa TOP 32</h2>
+            <h2 class="text-xl font-black text-slate-200 uppercase tracking-tight border-l-4 border-blue-500 pl-2">Drabinka pucharowa TOP 32 (Zarządzana przez Admina)</h2>
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 overflow-x-auto shadow-lg">
                 <div class="flex gap-8 min-w-[1200px]" id="bracket-container"></div>
             </div>
@@ -83,8 +83,6 @@
     <script>
         const SUPABASE_URL = "https://pjnthnehyprgzvfhtqtx.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqbnRobmVoeXByZ3p2Zmh0cXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNDMwMjUsImV4cCI6MjA5ODkxOTAyNX0.EXmNJE8-6k1w5_39Vr909JXlipgPzU2s3WX54lE619o";
-        
-        // Zmiana nazwy zmiennej, aby nie gryzła się z biblioteką Supabase
         const supabaseApp = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let currentUser = null;
@@ -97,7 +95,6 @@
                 currentUser = user;
                 document.getElementById('registration-form').classList.remove('hidden');
                 document.getElementById('reg-msg').classList.add('hidden');
-                
                 const username = user.user_metadata.custom_claims?.global_name || user.user_metadata.full_name || user.user_metadata.name;
                 
                 document.getElementById('auth-section').innerHTML = `
@@ -121,23 +118,20 @@
                     else btn.className = "px-5 py-2 rounded-lg font-black text-sm transition bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white cursor-pointer";
                 }
             });
-
             document.getElementById('reg-title').innerText = `Zapisy na ${roundNames[currentRound]}`;
             document.getElementById('table-title').innerText = `Zaakceptowani Kierowcy (${roundNames[currentRound]})`;
-            
             if (currentUser) checkUserStatus();
             loadData();
         }
 
         async function checkUserStatus() {
             const { data } = await supabaseApp.from('drivers').select('status').eq('id', currentUser.id).eq('round_id', currentRound).maybeSingle();
-            
             const formContainer = document.getElementById('registration-form');
             if (data) {
                 if (data.status === 'ODRZUCONY') {
                     formContainer.innerHTML = `
                         <div class="p-4 bg-slate-950 border border-slate-800 rounded-lg space-y-2">
-                            <p class="text-sm text-slate-400">Status na tej rundzie:</p>
+                            <p class="text-sm text-slate-400">Status:</p>
                             <p class="text-lg font-black text-red-500">ODRZUCONY</p>
                             <button onclick="resetRegistration()" class="bg-slate-800 text-xs px-3 py-1.5 rounded border border-slate-700 cursor-pointer">Zgłoś się ponownie</button>
                         </div>
@@ -146,34 +140,12 @@
                     let colorClass = data.status === 'ZAAKCEPTOWANY' ? "text-emerald-400" : "text-amber-400";
                     formContainer.innerHTML = `
                         <div class="p-4 bg-slate-950 border border-slate-800 rounded-lg">
-                            <p class="text-sm text-slate-400">Twoje zgłoszenie na tę rundę:</p>
+                            <p class="text-sm text-slate-400">Twoje zgłoszenie:</p>
                             <p class="text-lg font-black uppercase ${colorClass} mt-1">${data.status}</p>
                         </div>
                     `;
                 }
-            } else {
-                formContainer.innerHTML = `
-                    <div>
-                        <label class="block text-xs uppercase text-slate-400 mb-1">Samochód</label>
-                        <input type="text" id="reg-car" placeholder="np. Nissan S15" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white outline-none focus:border-red-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs uppercase text-slate-400 mb-1">Team (opcjonalnie)</label>
-                        <input type="text" id="reg-team" placeholder="np. Polish Gruz Team" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white outline-none focus:border-red-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs uppercase text-slate-400 mb-1">Kod Kraju (np. PL)</label>
-                        <input type="text" id="reg-country" placeholder="PL" maxlength="2" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white uppercase outline-none focus:border-red-500">
-                    </div>
-                    <button onclick="registerDriver()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-2 rounded transition cursor-pointer">Wyślij zgłoszenie</button>
-                `;
             }
-        }
-
-        async function resetRegistration() {
-            if (!confirm("Usunąć odrzucone zgłoszenie z tej rundy?")) return;
-            await supabaseApp.from('drivers').delete().eq('id', currentUser.id).eq('round_id', currentRound);
-            switchRound(currentRound);
         }
 
         async function registerDriver() {
@@ -184,92 +156,80 @@
 
             if(!car) return alert("Podaj model samochodu!");
 
-            const { error } = await supabaseApp.from('drivers').insert({
-                id: currentUser.id,
-                round_id: currentRound,
-                username: username,
-                avatar: currentUser.user_metadata.avatar_url,
-                car: car,
-                team: team,
-                country: country.toUpperCase(),
-                status: 'OCZEKUJE'
+            await supabaseApp.from('drivers').insert({
+                id: currentUser.id, round_id: currentRound, username: username, avatar: currentUser.user_metadata.avatar_url, car: car, team: team, country: country.toUpperCase(), status: 'OCZEKUJE'
             });
-
-            if(error) alert("Błąd zapisu: " + error.message);
-            else switchRound(currentRound);
+            switchRound(currentRound);
         }
 
         async function loadData() {
-            const { data } = await supabaseApp.from('drivers').select('*').eq('round_id', currentRound).order('best_score', { ascending: false });
-            const roundDrivers = data || [];
+            const { data: driversData } = await supabaseApp.from('drivers').select('*').eq('round_id', currentRound).order('best_score', { ascending: false });
+            const roundDrivers = driversData || [];
             const accepted = roundDrivers.filter(d => d.status === 'ZAAKCEPTOWANY');
             
+            // 1. Render listy kierowców
             const tbody = document.getElementById('drivers-table-body');
-            if(accepted.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-500 italic">Brak zatwierdzonych zgłoszeń na tę rundę.</td></tr>`;
-            } else {
-                tbody.innerHTML = accepted.map(d => `
-                    <tr class="hover:bg-slate-900/40 transition">
-                        <td class="p-4 font-bold flex items-center gap-3">
-                            <img src="https://flagcdn.com/16x12/${d.country.toLowerCase()}.png" class="rounded-sm shadow-sm" onerror="this.src='https://flagcdn.com/16x12/un.png'">
-                            ${d.username}
-                        </td>
-                        <td class="p-4 text-slate-400">${d.team}</td>
-                        <td class="p-4 text-red-400 font-mono text-xs font-semibold">${d.car}</td>
-                    </tr>
-                `).join('');
-            }
+            tbody.innerHTML = accepted.length === 0 ? `<tr><td colspan="3" class="p-4 text-center text-slate-500 italic">Brak kierowców.</td></tr>` : 
+            accepted.map(d => `
+                <tr class="hover:bg-slate-900/40 transition">
+                    <td class="p-4 font-bold flex items-center gap-3">
+                        <img src="https://flagcdn.com/16x12/${d.country.toLowerCase()}.png" class="rounded-sm shadow-sm">
+                        ${d.username}
+                    </td>
+                    <td class="p-4 text-slate-400">${d.team}</td>
+                    <td class="p-4 text-red-400 font-mono text-xs font-semibold">${d.car}</td>
+                </tr>
+            `).join('');
 
-            const qualified = accepted.filter(d => d.best_score > 0).slice(0, 5);
-            const top5Container = document.getElementById('top5-container');
-            if(qualified.length === 0) {
-                top5Container.innerHTML = `<div class="text-slate-500 italic text-sm text-center py-4">Brak opublikowanych wyników.</div>`;
-            } else {
-                top5Container.innerHTML = qualified.map((d, index) => `
-                    <div class="flex justify-between items-center bg-slate-950 p-3 rounded-lg border border-slate-800 shadow-inner">
-                        <div class="flex items-center gap-3 truncate">
-                            <span class="font-black text-amber-500 text-sm w-4">${index+1}</span>
-                            <span class="font-bold truncate text-sm">${d.username}</span>
-                        </div>
-                        <span class="font-mono font-black text-sm text-amber-400 pl-2">${Number(d.best_score).toFixed(2)}</span>
+            // 2. PEŁNE wyniki kwalifikacji (Rozszerzone ze starego TOP 5)
+            const qualified = accepted.filter(d => d.best_score > 0);
+            const qualiContainer = document.getElementById('quali-container');
+            qualiContainer.innerHTML = qualified.length === 0 ? `<div class="text-slate-500 italic text-sm text-center py-4">Brak opublikowanych wyników.</div>` :
+            qualified.map((d, index) => `
+                <div class="flex justify-between items-center bg-slate-950 p-3 rounded-lg border border-slate-800 shadow-inner">
+                    <div class="flex items-center gap-3 truncate">
+                        <span class="font-black text-amber-500 text-sm w-5 text-center">${index+1}</span>
+                        <span class="font-bold truncate text-sm">${d.username}</span>
                     </div>
-                `).join('');
-            }
+                    <span class="font-mono font-black text-sm text-amber-400 pl-2">${Number(d.best_score).toFixed(2)}</span>
+                </div>
+            `).join('');
 
-            generateBracket(accepted.filter(d => d.best_score > 0));
+            // 3. Pobranie i generowanie drabinki TOP 32 z bazy danych
+            const { data: bracketData } = await supabaseApp.from('bracket').select('*').eq('round_id', currentRound).order('pair_id', { ascending: true });
+            generateBracket(bracketData || [], roundDrivers);
         }
 
-        function generateBracket(qualifiedDrivers) {
+        function generateBracket(bracket, drivers) {
             const container = document.getElementById('bracket-container');
-            let html = `<div class="space-y-6"> <h3 class="text-xs uppercase font-black text-slate-500 mb-2 tracking-widest">Runda ${currentRound} (TOP 32)</h3>`;
-            for(let i = 0; i < 16; i++) {
-                const p1 = qualifiedDrivers[i] ? qualifiedDrivers[i].username : `Miejsce #${i+1}`;
-                const p2 = qualifiedDrivers[31 - i] ? qualifiedDrivers[31 - i].username : `Miejsce #${32 - i}`;
+            let html = `<div class="space-y-6"><h3 class="text-xs uppercase font-black text-slate-500 mb-2 tracking-widest">Pary TOP 32</h3>`;
+            
+            for(let i = 1; i <= 16; i++) {
+                const pair = bracket.find(b => b.pair_id === i);
+                const d1 = pair ? drivers.find(d => d.id === pair.p1_id) : null;
+                const d2 = pair ? drivers.find(d => d.id === pair.p2_id) : null;
+                
+                const name1 = d1 ? d1.username : `Kupiec #${i}`;
+                const name2 = d2 ? d2.username : `Kupiec #${33-i}`;
+                
+                const wClass1 = pair && pair.winner_id === pair.p1_id ? "border-l-4 border-emerald-500 text-emerald-400 bg-emerald-500/5" : "";
+                const wClass2 = pair && pair.winner_id === pair.p2_id ? "border-l-4 border-emerald-500 text-emerald-400 bg-emerald-500/5" : "";
+
                 html += `
                     <div class="bg-slate-950 border border-slate-800 rounded-lg w-64 text-xs overflow-hidden shadow-md">
-                        <div class="p-2.5 border-b border-slate-900 bg-red-950/10 font-bold truncate text-slate-200">1. ${p1}</div>
-                        <div class="p-2.5 bg-blue-950/10 font-bold truncate text-slate-200">2. ${p2}</div>
+                        <div class="p-2.5 border-b border-slate-900 font-bold truncate ${wClass1}">1. ${name1}</div>
+                        <div class="p-2.5 font-bold truncate ${wClass2}">2. ${name2}</div>
                     </div>
                 `;
             }
-            html += `</div>`;
-            container.innerHTML = html;
+            container.innerHTML = html + `</div>`;
         }
 
-        async function login() {
-            await supabaseApp.auth.signInWithOAuth({ 
-                provider: 'discord', 
-                options: { redirectTo: window.location.origin + window.location.pathname } 
-            });
-        }
-        
-        async function logout() { 
-            await supabaseApp.auth.signOut(); 
-            window.location.reload(); 
-        }
+        async function login() { await supabaseApp.auth.signInWithOAuth({ provider: 'discord', options: { redirectTo: window.location.origin + window.location.pathname } }); }
+        async function logout() { await supabaseApp.auth.signOut(); window.location.reload(); }
 
         checkUser();
-        supabaseApp.channel('public:drivers').on('postgres_changes', { event: '*', schema: 'public', table: 'drivers' }, () => { loadData(); }).subscribe();
+        supabaseApp.channel('db-live').on('postgres_changes', { event: '*', schema: 'public' }, () => { loadData(); }).subscribe();
     </script>
 </body>
 </html>
