@@ -106,10 +106,10 @@ async function checkUser() {
 }
 
 async function login() {
-    // Zmienione na supabaseClient
     const { data, error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'discord',
         options: { 
+            // Ta linijka dynamicznie pobiera adres Twojego GitHuba
             redirectTo: window.location.origin + window.location.pathname 
         }
     });
