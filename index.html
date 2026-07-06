@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AC Drift Championship</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans selection:bg-red-500 selection:text-white">
+
+    <nav class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-black tracking-wider text-red-500 italic">AC DRIFT LEAGUE</h1>
+            <div id="auth-section" class="flex items-center gap-4">
+                <button onclick="login()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg font-bold transition flex items-center gap-2 shadow-lg shadow-indigo-600/20">
+                    Zaloguj przez Discord
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto mt-10 px-4 space-y-12">
+        
+        <section>
+            <h2 class="text-2xl font-black uppercase tracking-tight mb-6 border-l-4 border-red-500 pl-3">Nadchodzące Rundy</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="rounds-container">
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-xl font-bold">Runda 1: Yas Marina</h3>
+                            <span class="bg-red-500/10 text-red-400 text-xs px-2.5 py-1 rounded-full border border-red-500/20 font-semibold uppercase">Zapisy otwarte</span>
+                        </div>
+                        <p class="text-sm text-slate-400 mb-4">Oficjalna runda driftingowa na słynnym torze Yas Marina. Wymagane zapisy i przejazd kwalifikacyjny.</p>
+                    </div>
+                    <button onclick="signUpForRound(1)" id="join-btn-1" class="w-full bg-slate-800 text-slate-400 py-2.5 rounded-lg font-bold cursor-not-allowed" disabled>
+                        Zaloguj się, aby dołączyć
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="text-2xl font-black uppercase tracking-tight mb-6 border-l-4 border-red-500 pl-3">Drabinka LIVE TOP 32</h2>
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 overflow-x-auto">
+                <div class="min-w-[800px] text-center text-slate-500 py-10 italic">
+                    Drabinka zostanie wygenerowana automatycznie po zakończeniu kwalifikacji.
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // KONFIGURACJA SUPABASE
+        const SUPABASE_URL = "https://pjnthnehyprgzvfhtqtx.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqbnRobmVoeXByZ3p2Zmh0cXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNDMwMjUsImV4cCI6MjA5ODkxOTAyNX0.EXmNJE8-6k1w5_39Vr909JXlipgPzU2s3WX54lE619o";
+        const supabase = @supabase/supabase-js.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let currentUser = null;
+
+        async function checkUser() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                currentUser = user;
+                updateUI(user);
+            }
+        }
+
+        function updateUI(user) {
+            const authSection = document.getElementById('auth-section');
+            const username = user.user_metadata.custom_claims?.global_name || user.user_metadata.full_name || user.email;
+            
+            // Sprawdzenie rangi (np. admin na podstawie ID Discorda lub bazy)
+            let isAdmin = user.app_metadata.provider === 'discord'; // dla testu, docelowo sprawdzasz w tabeli rang
+
+            authSection.innerHTML = `
+                <div class="flex items-center gap-4">
+                    ${isAdmin ? `<a href="admin.html" class="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-1 rounded font-bold uppercase tracking-wider hover:bg-amber-500 hover:text-slate-950 transition">Panel Admina</a>` : ''}
+                    <span class="text-sm font-medium text-slate-300">Kierowca: <strong class="text-white">${username}</strong></span>
+                    <button onclick="logout()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded transition">Wyloguj</button>
+                </div>
+            `;
+
+            // Odblokowanie przycisku zapisu
+            const joinBtn = document.getElementById('join-btn-1');
+            if(joinBtn) {
+                joinBtn.disabled = false;
+                joinBtn.className = "w-full bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg font-bold transition shadow-lg shadow-red-600/20";
+                joinBtn.innerText = "Dołącz do rundy";
+            }
+        }
+
+        async function login() {
+            await supabase.auth.signInWithOAuth({
+                provider: 'discord',
+                options: { redirectTo: window.location.origin + window.location.pathname }
+            });
+        }
+
+        async function logout() {
+            await supabase.auth.signOut();
+            window.location.reload();
+        }
+
+        function signUpForRound(roundId) {
+            alert("Zapisano pomyślnie! Twoje dane zostały przesłane do systemu kwalifikacji.");
+            const joinBtn = document.getElementById(`join-btn-${roundId}`);
+            joinBtn.disabled = true;
+            joinBtn.className = "w-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 py-2.5 rounded-lg font-bold cursor-not-allowed";
+            joinBtn.innerText = "✓ Jesteś zapisany";
+        }
+
+        // Sprawdź status po załadowaniu
+        checkUser();
+    </script>
+</body>
+</html>
