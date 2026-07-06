@@ -61,7 +61,7 @@
         let currentUser = null;
 
         async function checkUser() {
-            const { data: { user }, error } = await supabase.auth.getUser();
+            const { data: { user }, error } = await supabaseClient.auth.getUser();
             if (error) {
                 console.log("Brak zalogowanego użytkownika");
                 return;
@@ -92,20 +92,35 @@
             }
         }
 
-        async function login() {
-            const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: 'discord',
-                options: { 
-                    redirectTo: window.location.origin + window.location.pathname 
-                }
-            });
-            if (error) console.error("Błąd logowania:", error.message);
-        }
+async function checkUser() {
+    // Zmienione na supabaseClient
+    const { data: { user }, error } = await supabaseClient.auth.getUser(); 
+    if (error) {
+        console.log("Brak zalogowanego użytkownika");
+        return;
+    }
+    if (user) {
+        currentUser = user;
+        updateUI(user);
+    }
+}
 
-        async function logout() {
-            await supabase.auth.signOut();
-            window.location.reload();
+async function login() {
+    // Zmienione na supabaseClient
+    const { data, error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'discord',
+        options: { 
+            redirectTo: window.location.origin + window.location.pathname 
         }
+    });
+    if (error) console.error("Błąd logowania:", error.message);
+}
+
+async function logout() {
+    // Zmienione na supabaseClient
+    await supabaseClient.auth.signOut();
+    window.location.reload();
+}
 
         function signUpForRound(roundId) {
             alert("Zapisano pomyślnie! Twoje dane zostały przesłane do systemu kwalifikacji.");
