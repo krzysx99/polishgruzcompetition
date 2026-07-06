@@ -51,15 +51,21 @@
     </main>
 
     <script>
-        // KONFIGURACJA SUPABASE
-        const SUPABASE_URL = "https://pjnthnehyprgzvfhtqtx.supabase.co";
+        // --- UZUPEŁNIJ SWOJE DANE TUTAJ ---
+       const SUPABASE_URL = "https://pjnthnehyprgzvfhtqtx.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqbnRobmVoeXByZ3p2Zmh0cXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNDMwMjUsImV4cCI6MjA5ODkxOTAyNX0.EXmNJE8-6k1w5_39Vr909JXlipgPzU2s3WX54lE619o";
-        const supabase = @supabase/supabase-js.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // Bezpieczna inicjalizacja klienta bez znaku '@'
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let currentUser = null;
 
         async function checkUser() {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user }, error } = await supabase.auth.getUser();
+            if (error) {
+                console.log("Brak zalogowanego użytkownika");
+                return;
+            }
             if (user) {
                 currentUser = user;
                 updateUI(user);
@@ -70,18 +76,14 @@
             const authSection = document.getElementById('auth-section');
             const username = user.user_metadata.custom_claims?.global_name || user.user_metadata.full_name || user.email;
             
-            // Sprawdzenie rangi (np. admin na podstawie ID Discorda lub bazy)
-            let isAdmin = user.app_metadata.provider === 'discord'; // dla testu, docelowo sprawdzasz w tabeli rang
-
             authSection.innerHTML = `
                 <div class="flex items-center gap-4">
-                    ${isAdmin ? `<a href="admin.html" class="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-1 rounded font-bold uppercase tracking-wider hover:bg-amber-500 hover:text-slate-950 transition">Panel Admina</a>` : ''}
+                    <a href="admin.html" class="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-1 rounded font-bold uppercase tracking-wider hover:bg-amber-500 hover:text-slate-950 transition">Panel Admina</a>
                     <span class="text-sm font-medium text-slate-300">Kierowca: <strong class="text-white">${username}</strong></span>
                     <button onclick="logout()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded transition">Wyloguj</button>
                 </div>
             `;
 
-            // Odblokowanie przycisku zapisu
             const joinBtn = document.getElementById('join-btn-1');
             if(joinBtn) {
                 joinBtn.disabled = false;
@@ -91,10 +93,13 @@
         }
 
         async function login() {
-            await supabase.auth.signInWithOAuth({
+            const { data, error } = await supabase.auth.signInWithOAuth({
                 provider: 'discord',
-                options: { redirectTo: window.location.origin + window.location.pathname }
+                options: { 
+                    redirectTo: window.location.origin + window.location.pathname 
+                }
             });
+            if (error) console.error("Błąd logowania:", error.message);
         }
 
         async function logout() {
@@ -105,12 +110,14 @@
         function signUpForRound(roundId) {
             alert("Zapisano pomyślnie! Twoje dane zostały przesłane do systemu kwalifikacji.");
             const joinBtn = document.getElementById(`join-btn-${roundId}`);
-            joinBtn.disabled = true;
-            joinBtn.className = "w-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 py-2.5 rounded-lg font-bold cursor-not-allowed";
-            joinBtn.innerText = "✓ Jesteś zapisany";
+            if (joinBtn) {
+                joinBtn.disabled = true;
+                joinBtn.className = "w-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 py-2.5 rounded-lg font-bold cursor-not-allowed";
+                joinBtn.innerText = "✓ Jesteś zapisany";
+            }
         }
 
-        // Sprawdź status po załadowaniu
+        // Uruchomienie sprawdzania sesji przy ładowaniu strony
         checkUser();
     </script>
 </body>
