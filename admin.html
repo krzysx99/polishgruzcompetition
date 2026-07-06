@@ -70,15 +70,27 @@
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqbnRobmVoeXByZ3p2Zmh0cXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNDMwMjUsImV4cCI6MjA5ODkxOTAyNX0.EXmNJE8-6k1w5_39Vr909JXlipgPzU2s3WX54lE619o";
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
-        // ⚠️ TUTAJ WPISZ SWOJE UNIKALNE ID Z DISCORDA
+        // ⚠️ WPISZ SWOJE ID MIĘDZY CUDZYSŁOWAMI
         const ADMIN_DISCORD_ID = "859457790745378818"; 
         
         let allDriversList = [];
 
         async function verifyAdmin() {
             const { data: { user } } = await supabaseClient.auth.getUser();
-            if (!user || user.user_metadata.provider_id !== ADMIN_DISCORD_ID) {
-                alert("Brak uprawnień admina!");
+            
+            if (!user) {
+                alert("Nie jesteś zalogowany! Zaloguj się na stronie głównej przez Discord.");
+                window.location.href = "index.html";
+                return;
+            }
+
+            // Pobieramy ID zalogowanego użytkownika z metadanych Discorda i konwertujemy na tekst
+            const loggedInId = String(user.user_metadata.provider_id || user.user_metadata.sub || "");
+            const allowedId = String(ADMIN_DISCORD_ID).trim();
+
+            if (loggedInId !== allowedId) {
+                // Wyświetli dokładny komunikat, abyś mógł zweryfikować czy ID w kodzie i Discordzie są identyczne
+                alert(`Brak uprawnień admina!\n\nTwoje rzeczywiste ID Discorda: ${loggedInId}\nID wpisane w kodzie: ${allowedId}\n\nSkopiuj poprawne ID i wklej je do pliku admin.html.`);
                 window.location.href = "index.html";
             } else {
                 document.getElementById('admin-body').classList.remove('hidden');
@@ -88,12 +100,9 @@
 
         async function loadAdminData() {
             const activeRound = parseInt(document.getElementById('admin-round-select').value);
-            
-            // Pobieramy kierowców zapisanych TYLKO do wybranej rundy
             const { data: drivers } = await supabaseClient.from('drivers').select('*').eq('round_id', activeRound);
             allDriversList = drivers || [];
 
-            // Render wniosków
             const pending = allDriversList.filter(d => d.status === 'OCZEKUJE');
             const tbody = document.getElementById('req-table-body');
             tbody.innerHTML = pending.length === 0 ? `<tr><td colspan="4" class="p-3 text-slate-500 text-center italic">Brak oczekujących zgłoszeń na tę rundę.</td></tr>` : 
@@ -109,7 +118,6 @@
                 </tr>
             `).join('');
 
-            // Selektor kierowców
             const accepted = allDriversList.filter(d => d.status === 'ZAAKCEPTOWANY');
             const select = document.getElementById('quali-select');
             select.innerHTML = '<option value="">Wybierz kierowcę...</option>' + accepted.map(d => `<option value="${d.id}">${d.username}</option>`).join('');
