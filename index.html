@@ -17,9 +17,16 @@
         </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto mt-10 px-4 space-y-12 pb-20">
+    <div class="bg-slate-900 border-b border-slate-800">
+        <div class="max-w-6xl mx-auto px-4 flex gap-2 py-3">
+            <button onclick="switchRound(1)" id="tab-round-1" class="px-5 py-2 rounded-lg font-black text-sm transition bg-red-600 text-white">RUNDA 1: YAS MARINA</button>
+            <button onclick="switchRound(2)" id="tab-round-2" class="px-5 py-2 rounded-lg font-black text-sm transition bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white">RUNDA 2: EBISU MINAMI</button>
+        </div>
+    </div>
+
+    <main class="max-w-6xl mx-auto mt-8 px-4 space-y-12 pb-20">
         <section class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
-            <h2 class="text-xl font-bold mb-4 text-red-500 uppercase tracking-tight">Zapisy na RUNDĘ 1: YAS MARINA</h2>
+            <h2 id="reg-title" class="text-xl font-bold mb-4 text-red-500 uppercase tracking-tight">Zapisy na RUNDĘ 1</h2>
             <div id="registration-form" class="hidden space-y-4 max-w-md">
                 <div>
                     <label class="block text-xs uppercase text-slate-400 mb-1">Samochód</label>
@@ -40,7 +47,7 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-2 space-y-4">
-                <h2 class="text-xl font-black text-slate-200 uppercase tracking-tight border-l-4 border-red-500 pl-2">Zaakceptowani Kierowcy</h2>
+                <h2 id="table-title" class="text-xl font-black text-slate-200 uppercase tracking-tight border-l-4 border-red-500 pl-2">Zaakceptowani Kierowcy (Runda 1)</h2>
                 <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
                     <table class="w-full text-left border-collapse">
                         <thead>
@@ -51,7 +58,7 @@
                             </tr>
                         </thead>
                         <tbody id="drivers-table-body" class="divide-y divide-slate-800 text-sm">
-                            <tr><td colspan="3" class="p-4 text-center text-slate-500 italic">Ładowanie listy zawodników...</td></tr>
+                            <tr><td colspan="3" class="p-4 text-center text-slate-500 italic">Ładowanie...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -60,16 +67,15 @@
             <div class="space-y-4">
                 <h2 class="text-xl font-black text-slate-200 uppercase tracking-tight border-l-4 border-amber-500 pl-2">TOP 5 Kwalifikacji</h2>
                 <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2 shadow-lg" id="top5-container">
-                    <div class="text-slate-500 italic text-sm text-center py-4">Brak opublikowanych wyników...</div>
+                    <div class="text-slate-500 italic text-sm text-center py-4">Brak wyników...</div>
                 </div>
             </div>
         </div>
 
         <section class="space-y-4">
-            <h2 class="text-xl font-black text-slate-200 uppercase tracking-tight border-l-4 border-blue-500 pl-2">Drabinka pucharowa TOP 32 (Generowana Live)</h2>
+            <h2 class="text-xl font-black text-slate-200 uppercase tracking-tight border-l-4 border-blue-500 pl-2">Drabinka pucharowa TOP 32</h2>
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 overflow-x-auto shadow-lg">
-                <div class="flex gap-8 min-w-[1200px]" id="bracket-container">
-                    </div>
+                <div class="flex gap-8 min-w-[1200px]" id="bracket-container"></div>
             </div>
         </section>
     </main>
@@ -80,6 +86,8 @@
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let currentUser = null;
+        let currentRound = 1;
+        const roundNames = { 1: "RUNDĘ 1: YAS MARINA", 2: "RUNDĘ 2: EBISU MINAMI" };
 
         async function checkUser() {
             const { data: { user } } = await supabaseClient.auth.getUser();
@@ -102,40 +110,72 @@
             loadData();
         }
 
+        function switchRound(roundId) {
+            currentRound = roundId;
+            // Aktualizacja wyglądu przycisków
+            [1, 2].forEach(id => {
+                const btn = document.getElementById(`tab-round-${id}`);
+                if(id === roundId) {
+                    btn.className = "px-5 py-2 rounded-lg font-black text-sm transition bg-red-600 text-white";
+                } else {
+                    btn.className = "px-5 py-2 rounded-lg font-black text-sm transition bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white";
+                }
+            });
+
+            document.getElementById('reg-title').innerText = `Zapisy na ${roundNames[currentRound]}`;
+            document.getElementById('table-title').innerText = `Zaakceptowani Kierowcy (${roundNames[currentRound]})`;
+            
+            if (currentUser) checkUserStatus();
+            loadData();
+        }
+
         async function checkUserStatus() {
-            const { data } = await supabaseClient.from('drivers').select('status').eq('id', currentUser.id).single();
+            // Sprawdzamy status zgłoszenia tylko dla AKTUALNIE wybranej rundy
+            const { data } = await supabaseClient.from('drivers').select('status').eq('id', currentUser.id).eq('round_id', currentRound).single();
+            
+            const formContainer = document.getElementById('registration-form');
             if (data) {
                 if (data.status === 'ODRZUCONY') {
-                    // Wyświetla komunikat o odrzuceniu i dodaje przycisk ponownego zapisu
-                    document.getElementById('registration-form').innerHTML = `
-                        <div class="p-4 bg-slate-950 border border-slate-800 rounded-lg space-y-3">
-                            <p class="text-sm text-slate-400">Twoje zgłoszenie zostało zaktualizowane:</p>
-                            <p class="text-lg font-black uppercase tracking-wider text-red-500">ODRZUCONY</p>
-                            <p class="text-xs text-slate-500">Jeśli to była pomyłka organizatora, możesz wyczyścić zgłoszenie i wysłać je ponownie.</p>
-                            <button onclick="resetRegistration()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2 rounded transition border border-slate-700">Zgłoś się ponownie</button>
+                    formContainer.innerHTML = `
+                        <div class="p-4 bg-slate-950 border border-slate-800 rounded-lg space-y-2">
+                            <p class="text-sm text-slate-400">Status na tej rundzie:</p>
+                            <p class="text-lg font-black text-red-500">ODRZUCONY</p>
+                            <button onclick="resetRegistration()" class="bg-slate-800 text-xs px-3 py-1.5 rounded border border-slate-700">Zgłoś się ponownie</button>
                         </div>
                     `;
                 } else {
                     let colorClass = data.status === 'ZAAKCEPTOWANY' ? "text-emerald-400" : "text-amber-400";
-                    document.getElementById('registration-form').innerHTML = `
+                    formContainer.innerHTML = `
                         <div class="p-4 bg-slate-950 border border-slate-800 rounded-lg">
-                            <p class="text-sm text-slate-400">Twoje zgłoszenie zostało wysłane. Aktualny status:</p>
-                            <p class="text-lg font-black uppercase tracking-wider ${colorClass} mt-1">${data.status}</p>
+                            <p class="text-sm text-slate-400">Twoje zgłoszenie na tę rundę:</p>
+                            <p class="text-lg font-black uppercase ${colorClass} mt-1">${data.status}</p>
                         </div>
                     `;
                 }
+            } else {
+                // Jeśli brak wpisu dla tej rundy, przywracamy czysty formularz
+                formContainer.innerHTML = `
+                    <div>
+                        <label class="block text-xs uppercase text-slate-400 mb-1">Samochód</label>
+                        <input type="text" id="reg-car" placeholder="np. Nissan S15" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white outline-none focus:border-red-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase text-slate-400 mb-1">Team (opcjonalnie)</label>
+                        <input type="text" id="reg-team" placeholder="np. Polish Gruz Team" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white outline-none focus:border-red-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase text-slate-400 mb-1">Kod Kraju (np. PL)</label>
+                        <input type="text" id="reg-country" placeholder="PL" maxlength="2" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white uppercase outline-none focus:border-red-500">
+                    </div>
+                    <button onclick="registerDriver()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-2 rounded transition">Wyślij zgłoszenie</button>
+                `;
             }
         }
 
         async function resetRegistration() {
-            if (!confirm("Czy na pewno chcesz usunąć stare zgłoszenie i zarejestrować się ponownie?")) return;
-            
-            const { error } = await supabaseClient.from('drivers').delete().eq('id', currentUser.id);
-            if (error) {
-                alert("Błąd podczas resetowania: " + error.message);
-            } else {
-                window.location.reload();
-            }
+            if (!confirm("Usunąć odrzucone zgłoszenie z tej rundy?")) return;
+            await supabaseClient.from('drivers').delete().eq('id', currentUser.id).eq('round_id', currentRound);
+            switchRound(currentRound);
         }
 
         async function registerDriver() {
@@ -144,10 +184,11 @@
             const country = document.getElementById('reg-country').value.trim() || 'PL';
             const username = currentUser.user_metadata.custom_claims?.global_name || currentUser.user_metadata.full_name || currentUser.user_metadata.name;
 
-            if(!car) return alert("Musisz podać markę i model samochodu!");
+            if(!car) return alert("Podaj model samochodu!");
 
             const { error } = await supabaseClient.from('drivers').insert({
                 id: currentUser.id,
+                round_id: currentRound,
                 username: username,
                 avatar: currentUser.user_metadata.avatar_url,
                 car: car,
@@ -156,22 +197,21 @@
                 status: 'OCZEKUJE'
             });
 
-            if(error) {
-                alert("Wystąpił błąd podczas wysyłania zgłoszenia: " + error.message);
-            } else {
-                alert("Zgłoszenie wysłane pomyślnie! Poczekaj na weryfikację ze strony administratora.");
-                window.location.reload();
-            }
+            if(error) alert("Błąd zapisu: " + error.message);
+            else switchRound(currentRound);
         }
 
         async function loadData() {
-            const { data: allDrivers } = await supabaseClient.from('drivers').select('*').order('best_score', { ascending: false });
-            const drivers = allDrivers || [];
+            // Pobieramy dane przefiltrowane po AKTUALNEJ rundzie
+            const { data } = await supabaseClient.from('drivers').select('*').eq('round_id', currentRound).order('best_score', { ascending: false });
+            const roundDrivers = data || [];
             
-            const accepted = drivers.filter(d => d.status === 'ZAAKCEPTOWANY');
+            const accepted = roundDrivers.filter(d => d.status === 'ZAAKCEPTOWANY');
+            
+            // Tabela kierowców
             const tbody = document.getElementById('drivers-table-body');
             if(accepted.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-500 italic">Brak zatwierdzonych zgłoszeń.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-500 italic">Brak zatwierdzonych zgłoszeń na tę rundę.</td></tr>`;
             } else {
                 tbody.innerHTML = accepted.map(d => `
                     <tr class="hover:bg-slate-900/40 transition">
@@ -185,10 +225,11 @@
                 `).join('');
             }
 
+            // TOP 5 Kwalifikacji
             const qualified = accepted.filter(d => d.best_score > 0).slice(0, 5);
             const top5Container = document.getElementById('top5-container');
             if(qualified.length === 0) {
-                top5Container.innerHTML = `<div class="text-slate-500 italic text-sm text-center py-4">Trwają przejazdy kwalifikacyjne...</div>`;
+                top5Container.innerHTML = `<div class="text-slate-500 italic text-sm text-center py-4">Brak opublikowanych wyników.</div>`;
             } else {
                 top5Container.innerHTML = qualified.map((d, index) => `
                     <div class="flex justify-between items-center bg-slate-950 p-3 rounded-lg border border-slate-800 shadow-inner">
@@ -201,16 +242,16 @@
                 `).join('');
             }
 
+            // Drabinka TOP 32
             generateBracket(accepted.filter(d => d.best_score > 0));
         }
 
         function generateBracket(qualifiedDrivers) {
             const container = document.getElementById('bracket-container');
             let html = `<div class="space-y-6"> <h3 class="text-xs uppercase font-black text-slate-500 mb-2 tracking-widest">Runda 1 (TOP 32)</h3>`;
-            
             for(let i = 0; i < 16; i++) {
-                const p1 = qualifiedDrivers[i] ? qualifiedDrivers[i].username : `Miejsce Kwalifikacji #${i+1}`;
-                const p2 = qualifiedDrivers[31 - i] ? qualifiedDrivers[31 - i].username : `Miejsce Kwalifikacji #${32 - i}`;
+                const p1 = qualifiedDrivers[i] ? qualifiedDrivers[i].username : `Miejsce #${i+1}`;
+                const p2 = qualifiedDrivers[31 - i] ? qualifiedDrivers[31 - i].username : `Miejsce #${32 - i}`;
                 html += `
                     <div class="bg-slate-950 border border-slate-800 rounded-lg w-64 text-xs overflow-hidden shadow-md">
                         <div class="p-2.5 border-b border-slate-900 bg-red-950/10 font-bold truncate text-slate-200">1. ${p1}</div>
@@ -221,11 +262,6 @@
             html += `</div>`;
             container.innerHTML = html;
         }
-
-        async function login() {
-            await supabaseClient.auth.signInWithOAuth({ provider: 'discord', options: { redirectTo: window.location.origin + window.location.pathname } });
-        }
-        async function logout() { await supabaseClient.auth.signOut(); window.location.reload(); }
 
         checkUser();
         supabaseClient.channel('public:drivers').on('postgres_changes', { event: '*', schema: 'public', table: 'drivers' }, () => { loadData(); }).subscribe();
