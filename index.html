@@ -2,138 +2,217 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AC Drift Championship</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans selection:bg-red-500 selection:text-white">
+<body class="bg-slate-950 text-slate-100 font-sans">
 
     <nav class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-black tracking-wider text-red-500 italic">AC DRIFT LEAGUE</h1>
-            <div id="auth-section" class="flex items-center gap-4">
-                <button onclick="login()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg font-bold transition flex items-center gap-2 shadow-lg shadow-indigo-600/20">
-                    Zaloguj przez Discord
-                </button>
+            <h1 class="text-xl font-black text-red-500 italic">AC DRIFT LEAGUE</h1>
+            <div id="auth-section">
+                <button onclick="login()" class="bg-indigo-600 hover:bg-indigo-700 px-5 py-2 rounded-lg font-bold transition">Zaloguj przez Discord</button>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto mt-10 px-4 space-y-12">
-        
-        <section>
-            <h2 class="text-2xl font-black uppercase tracking-tight mb-6 border-l-4 border-red-500 pl-3">Nadchodzące Rundy</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="rounds-container">
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col justify-between">
-                    <div>
-                        <div class="flex justify-between items-start mb-4">
-                            <h3 class="text-xl font-bold">Runda 1: Yas Marina</h3>
-                            <span class="bg-red-500/10 text-red-400 text-xs px-2.5 py-1 rounded-full border border-red-500/20 font-semibold uppercase">Zapisy otwarte</span>
-                        </div>
-                        <p class="text-sm text-slate-400 mb-4">Oficjalna runda driftingowa na słynnym torze Yas Marina. Wymagane zapisy i przejazd kwalifikacyjny.</p>
-                    </div>
-                    <button onclick="signUpForRound(1)" id="join-btn-1" class="w-full bg-slate-800 text-slate-400 py-2.5 rounded-lg font-bold cursor-not-allowed" disabled>
-                        Zaloguj się, aby dołączyć
-                    </button>
+    <main class="max-w-6xl mx-auto mt-10 px-4 space-y-12 pb-20">
+        <section class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
+            <h2 class="text-xl font-bold mb-4 text-red-500 uppercase tracking-tight">Zapisy na RUNDĘ 1: YAS MARINA</h2>
+            <div id="registration-form" class="hidden space-y-4 max-w-md">
+                <div>
+                    <label class="block text-xs uppercase text-slate-400 mb-1">Samochód</label>
+                    <input type="text" id="reg-car" placeholder="np. Nissan S15" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white outline-none focus:border-red-500">
                 </div>
+                <div>
+                    <label class="block text-xs uppercase text-slate-400 mb-1">Team (opcjonalnie)</label>
+                    <input type="text" id="reg-team" placeholder="np. Polish Gruz Team" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white outline-none focus:border-red-500">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase text-slate-400 mb-1">Kod Kraju (np. PL, FR, DE)</label>
+                    <input type="text" id="reg-country" placeholder="PL" maxlength="2" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-white uppercase outline-none focus:border-red-500">
+                </div>
+                <button onclick="registerDriver()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-2 rounded transition">Wyślij zgłoszenie</button>
             </div>
+            <p id="reg-msg" class="text-slate-400 italic">Zaloguj się przez Discord, aby wysłać swoje zgłoszenie na zawody.</p>
         </section>
 
-        <section>
-            <h2 class="text-2xl font-black uppercase tracking-tight mb-6 border-l-4 border-red-500 pl-3">Drabinka LIVE TOP 32</h2>
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 overflow-x-auto">
-                <div class="min-w-[800px] text-center text-slate-500 py-10 italic">
-                    Drabinka zostanie wygenerowana automatycznie po zakończeniu kwalifikacji.
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 space-y-4">
+                <h2 class="text-xl font-black text-slate-200 uppercase tracking-tight border-l-4 border-red-500 pl-2">Zaakceptowani Kierowcy</h2>
+                <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-950 text-slate-400 text-xs font-bold uppercase border-b border-slate-800">
+                                <th class="p-4">Kierowca</th>
+                                <th class="p-4">Team</th>
+                                <th class="p-4">Auto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="drivers-table-body" class="divide-y divide-slate-800 text-sm">
+                            <tr><td colspan="3" class="p-4 text-center text-slate-500 italic">Ładowanie listy zawodników...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
+            </div>
+
+            <div class="space-y-4">
+                <h2 class="text-xl font-black text-slate-200 uppercase tracking-tight border-l-4 border-amber-500 pl-2">TOP 5 Kwalifikacji</h2>
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2 shadow-lg" id="top5-container">
+                    <div class="text-slate-500 italic text-sm text-center py-4">Brak opublikowanych wyników...</div>
+                </div>
+            </div>
+        </div>
+
+        <section class="space-y-4">
+            <h2 class="text-xl font-black text-slate-200 uppercase tracking-tight border-l-4 border-blue-500 pl-2">Drabinka pucharowa TOP 32 (Generowana Live)</h2>
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 overflow-x-auto shadow-lg">
+                <div class="flex gap-8 min-w-[1200px]" id="bracket-container">
+                    </div>
             </div>
         </section>
     </main>
 
     <script>
-        // --- UZUPEŁNIJ SWOJE DANE TUTAJ ---
-       const SUPABASE_URL = "https://pjnthnehyprgzvfhtqtx.supabase.co";
+        const SUPABASE_URL = "https://pjnthnehyprgzvfhtqtx.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqbnRobmVoeXByZ3p2Zmh0cXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNDMwMjUsImV4cCI6MjA5ODkxOTAyNX0.EXmNJE8-6k1w5_39Vr909JXlipgPzU2s3WX54lE619o";
-        
-        // Bezpieczna inicjalizacja klienta bez znaku '@'
-       const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let currentUser = null;
 
         async function checkUser() {
-            const { data: { user }, error } = await supabaseClient.auth.getUser();
-            if (error) {
-                console.log("Brak zalogowanego użytkownika");
-                return;
-            }
+            const { data: { user } } = await supabaseClient.auth.getUser();
             if (user) {
                 currentUser = user;
-                updateUI(user);
+                document.getElementById('registration-form').classList.remove('hidden');
+                document.getElementById('reg-msg').classList.add('hidden');
+                
+                const username = user.user_metadata.custom_claims?.global_name || user.user_metadata.full_name || user.user_metadata.name;
+                
+                document.getElementById('auth-section').innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <a href="admin.html" class="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded font-bold uppercase tracking-wider hover:bg-amber-500 hover:text-slate-950 transition">Panel Admina</a>
+                        <span class="text-sm">Kierowca: <strong class="text-white">${username}</strong></span>
+                        <button onclick="logout()" class="text-xs text-slate-400 hover:text-white transition">Wyloguj</button>
+                    </div>
+                `;
+                checkUserStatus();
+            }
+            loadData();
+        }
+
+        async function checkUserStatus() {
+            const { data } = await supabaseClient.from('drivers').select('status').eq('id', currentUser.id).single();
+            if (data) {
+                let colorClass = "text-amber-400";
+                if(data.status === 'ZAAKCEPTOWANY') colorClass = "text-emerald-400";
+                if(data.status === 'ODRZUCONY') colorClass = "text-red-500";
+
+                document.getElementById('registration-form').innerHTML = `
+                    <div class="p-4 bg-slate-950 border border-slate-800 rounded-lg">
+                        <p class="text-sm text-slate-400">Twoje zgłoszenie zostało wysłane. Aktualny status:</p>
+                        <p class="text-lg font-black uppercase tracking-wider ${colorClass} mt-1">${data.status}</p>
+                    </div>
+                `;
             }
         }
 
-        function updateUI(user) {
-            const authSection = document.getElementById('auth-section');
-            const username = user.user_metadata.custom_claims?.global_name || user.user_metadata.full_name || user.email;
+        async function registerDriver() {
+            const car = document.getElementById('reg-car').value.trim();
+            const team = document.getElementById('reg-team').value.trim() || 'BRAK TEAMU';
+            const country = document.getElementById('reg-country').value.trim() || 'PL';
+            const username = currentUser.user_metadata.custom_claims?.global_name || currentUser.user_metadata.full_name || currentUser.user_metadata.name;
+
+            if(!car) return alert("Musisz podać markę i model samochodu!");
+
+            const { error } = await supabaseClient.from('drivers').insert({
+                id: currentUser.id,
+                username: username,
+                avatar: currentUser.user_metadata.avatar_url,
+                car: car,
+                team: team,
+                country: country.toUpperCase(),
+                status: 'OCZEKUJE'
+            });
+
+            if(error) {
+                alert("Wystąpił błąd podczas wysyłania zgłoszenia: " + error.message);
+            } else {
+                alert("Zgłoszenie wysłane pomyślnie! Poczekaj na weryfikację ze strony administratora.");
+                window.location.reload();
+            }
+        }
+
+        async function loadData() {
+            const { data: allDrivers } = await supabaseClient.from('drivers').select('*').order('best_score', { ascending: false });
+            const drivers = allDrivers || [];
             
-            authSection.innerHTML = `
-                <div class="flex items-center gap-4">
-                    <a href="admin.html" class="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-1 rounded font-bold uppercase tracking-wider hover:bg-amber-500 hover:text-slate-950 transition">Panel Admina</a>
-                    <span class="text-sm font-medium text-slate-300">Kierowca: <strong class="text-white">${username}</strong></span>
-                    <button onclick="logout()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded transition">Wyloguj</button>
-                </div>
-            `;
-
-            const joinBtn = document.getElementById('join-btn-1');
-            if(joinBtn) {
-                joinBtn.disabled = false;
-                joinBtn.className = "w-full bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg font-bold transition shadow-lg shadow-red-600/20";
-                joinBtn.innerText = "Dołącz do rundy";
+            // Renderuj zaakceptowanych kierowców
+            const accepted = drivers.filter(d => d.status === 'ZAAKCEPTOWANY');
+            const tbody = document.getElementById('drivers-table-body');
+            if(accepted.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-500 italic">Brak zatwierdzonych zgłoszeń.</td></tr>`;
+            } else {
+                tbody.innerHTML = accepted.map(d => `
+                    <tr class="hover:bg-slate-900/40 transition">
+                        <td class="p-4 font-bold flex items-center gap-3">
+                            <img src="https://flagcdn.com/16x12/${d.country.toLowerCase()}.png" class="rounded-sm shadow-sm" onerror="this.src='https://flagcdn.com/16x12/un.png'">
+                            ${d.username}
+                        </td>
+                        <td class="p-4 text-slate-400">${d.team}</td>
+                        <td class="p-4 text-red-400 font-mono text-xs font-semibold">${d.car}</td>
+                    </tr>
+                `).join('');
             }
-        }
 
-async function checkUser() {
-    // Zmienione na supabaseClient
-    const { data: { user }, error } = await supabaseClient.auth.getUser(); 
-    if (error) {
-        console.log("Brak zalogowanego użytkownika");
-        return;
-    }
-    if (user) {
-        currentUser = user;
-        updateUI(user);
-    }
-}
-
-async function login() {
-    const { data, error } = await supabaseClient.auth.signInWithOAuth({
-        provider: 'discord',
-        options: { 
-            // Ta linijka dynamicznie pobiera adres Twojego GitHuba
-            redirectTo: window.location.origin + window.location.pathname 
-        }
-    });
-    if (error) console.error("Błąd logowania:", error.message);
-}
-
-async function logout() {
-    // Zmienione na supabaseClient
-    await supabaseClient.auth.signOut();
-    window.location.reload();
-}
-
-        function signUpForRound(roundId) {
-            alert("Zapisano pomyślnie! Twoje dane zostały przesłane do systemu kwalifikacji.");
-            const joinBtn = document.getElementById(`join-btn-${roundId}`);
-            if (joinBtn) {
-                joinBtn.disabled = true;
-                joinBtn.className = "w-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 py-2.5 rounded-lg font-bold cursor-not-allowed";
-                joinBtn.innerText = "✓ Jesteś zapisany";
+            // Renderuj TOP 5 Kwalifikacji (sortowane od najwyższego wyniku)
+            const qualified = accepted.filter(d => d.best_score > 0).slice(0, 5);
+            const top5Container = document.getElementById('top5-container');
+            if(qualified.length === 0) {
+                top5Container.innerHTML = `<div class="text-slate-500 italic text-sm text-center py-4">Trwają przejazdy kwalifikacyjne...</div>`;
+            } else {
+                top5Container.innerHTML = qualified.map((d, index) => `
+                    <div class="flex justify-between items-center bg-slate-950 p-3 rounded-lg border border-slate-800 shadow-inner">
+                        <div class="flex items-center gap-3 truncate">
+                            <span class="font-black text-amber-500 text-sm w-4">${index+1}</span>
+                            <span class="font-bold truncate text-sm">${d.username}</span>
+                        </div>
+                        <span class="font-mono font-black text-sm text-amber-400 pl-2">${Number(d.best_score).toFixed(2)}</span>
+                    </div>
+                `).join('');
             }
+
+            // Generowanie drabinki turniejowej
+            generateBracket(accepted.filter(d => d.best_score > 0));
         }
 
-        // Uruchomienie sprawdzania sesji przy ładowaniu strony
+        function generateBracket(qualifiedDrivers) {
+            const container = document.getElementById('bracket-container');
+            let html = `<div class="space-y-6"> <h3 class="text-xs uppercase font-black text-slate-500 mb-2 tracking-widest">Runda 1 (TOP 32)</h3>`;
+            
+            for(let i = 0; i < 16; i++) {
+                const p1 = qualifiedDrivers[i] ? qualifiedDrivers[i].username : `Miejsce Kwalifikacji #${i+1}`;
+                const p2 = qualifiedDrivers[31 - i] ? qualifiedDrivers[31 - i].username : `Miejsce Kwalifikacji #${32 - i}`;
+                html += `
+                    <div class="bg-slate-950 border border-slate-800 rounded-lg w-64 text-xs overflow-hidden shadow-md">
+                        <div class="p-2.5 border-b border-slate-900 bg-red-950/10 font-bold truncate text-slate-200">1. ${p1}</div>
+                        <div class="p-2.5 bg-blue-950/10 font-bold truncate text-slate-200">2. ${p2}</div>
+                    </div>
+                `;
+            }
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        async function login() {
+            await supabaseClient.auth.signInWithOAuth({ provider: 'discord', options: { redirectTo: window.location.origin + window.location.pathname } });
+        }
+        async function logout() { await supabaseClient.auth.signOut(); window.location.reload(); }
+
         checkUser();
+        // Słuchanie zmian live (Realtime)
+        supabaseClient.channel('public:drivers').on('postgres_changes', { event: '*', schema: 'public', table: 'drivers' }, () => { loadData(); }).subscribe();
     </script>
 </body>
 </html>
