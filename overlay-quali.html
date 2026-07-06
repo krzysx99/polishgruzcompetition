@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>HUD Kwalifikacji - Stream Overlay</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>.skew-block { transform: skewX(-12deg); } .unskew { transform: skewX(12deg); }</style>
+</head>
+<body class="bg-transparent overflow-hidden w-[1920px] h-[1080px] relative text-white font-sans antialiased select-none">
+
+    <div class="absolute bottom-16 right-20 flex items-end gap-3">
+        
+        <div class="skew-block bg-slate-900/95 border-l-4 border-red-500 w-[450px] h-14 flex items-center px-6 shadow-2xl">
+            <div class="unskew flex flex-col">
+                <span id="driver-name" class="font-black text-lg tracking-wide uppercase">ŁADOWANIE...</span>
+                <span id="driver-car" class="text-xs font-bold text-red-500 uppercase tracking-widest">---</span>
+            </div>
+        </div>
+
+        <div class="skew-block bg-slate-900/95 border border-slate-800 w-20 h-14 flex flex-col items-center justify-center shadow-xl">
+            <span class="unskew text-[10px] font-bold text-slate-500 uppercase tracking-wider">R1</span>
+            <span id="score-r1" class="unskew font-black text-base text-slate-100">--</span>
+        </div>
+
+        <div class="skew-block bg-slate-950/90 border border-slate-800 w-20 h-14 flex flex-col items-center justify-center shadow-xl">
+            <span class="unskew text-[10px] font-bold text-slate-500 uppercase tracking-wider">R2</span>
+            <span id="score-r2" class="unskew font-black text-base text-slate-400">--</span>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://pjnthnehyprgzvfhtqtx.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBqbnRobmVoeXByZ3p2Zmh0cXR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNDMwMjUsImV4cCI6MjA5ODkxOTAyNX0.EXmNJE8-6k1w5_39Vr909JXlipgPzU2s3WX54lE619o";
+        const supabase = @supabase/supabase-js.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function initOverlay() {
+            const { data } = await supabase.from('stream_state').select('*').eq('id', 'current_quali').single();
+            if (data) render(data.data);
+        }
+
+        function render(data) {
+            document.getElementById('driver-name').innerText = data.driver;
+            document.getElementById('driver-car').innerText = data.car;
+            document.getElementById('score-r1').innerText = data.r1;
+            document.getElementById('score-r2').innerText = data.r2;
+        }
+
+        // Subskrypcja Realtime
+        supabase.channel('public:stream_state')
+            .on('postgres_changes', { event: 'UPDATE', filter: "id=eq.current_quali", schema: 'public', table: 'stream_state' }, payload => {
+                render(payload.new.data);
+            })
+            .subscribe();
+
+        initOverlay();
+    </script>
+</body>
+</html>
