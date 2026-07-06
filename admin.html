@@ -10,7 +10,16 @@
 
     <div class="max-w-5xl mx-auto space-y-8">
         <div class="flex justify-between items-center border-b border-slate-800 pb-4">
-            <h1 class="text-2xl font-black text-amber-400 uppercase tracking-tight">Panel Sterowania Ligą</h1>
+            <div class="flex items-center gap-6">
+                <h1 class="text-2xl font-black text-amber-400 uppercase tracking-tight">Panel Sterowania Ligą</h1>
+                <div class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+                    <label class="text-xs uppercase text-slate-400 font-bold">Zarządzaj Rundą:</label>
+                    <select id="admin-round-select" onchange="loadAdminData()" class="bg-slate-950 border border-slate-800 text-xs font-bold text-white rounded p-1 outline-none">
+                        <option value="1">RUNDA 1: YAS MARINA</option>
+                        <option value="2">RUNDA 2: EBISU MINAMI</option>
+                    </select>
+                </div>
+            </div>
             <a href="index.html" class="text-sm text-slate-400 hover:text-white transition">← Powrót do strony głównej</a>
         </div>
 
@@ -26,8 +35,7 @@
                             <th class="p-3">Zarządzaj</th>
                         </tr>
                     </thead>
-                    <tbody id="req-table-body" class="divide-y divide-slate-800">
-                        </tbody>
+                    <tbody id="req-table-body" class="divide-y divide-slate-800"></tbody>
                 </table>
             </div>
         </section>
@@ -63,14 +71,14 @@
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         // ⚠️ TUTAJ WPISZ SWOJE UNIKALNE ID Z DISCORDA
-        const ADMIN_DISCORD_ID = "859457790745378818"; 
+        const ADMIN_DISCORD_ID = "TUTAJ_WPISZ_SWOJE_ID_DISCORDA"; 
         
         let allDriversList = [];
 
         async function verifyAdmin() {
             const { data: { user } } = await supabaseClient.auth.getUser();
             if (!user || user.user_metadata.provider_id !== ADMIN_DISCORD_ID) {
-                alert("Brak uprawnień. Tylko główny organizator ma dostęp do tego panelu.");
+                alert("Brak uprawnień admina!");
                 window.location.href = "index.html";
             } else {
                 document.getElementById('admin-body').classList.remove('hidden');
@@ -79,13 +87,16 @@
         }
 
         async function loadAdminData() {
-            const { data: drivers } = await supabaseClient.from('drivers').select('*');
+            const activeRound = parseInt(document.getElementById('admin-round-select').value);
+            
+            // Pobieramy kierowców zapisanych TYLKO do wybranej rundy
+            const { data: drivers } = await supabaseClient.from('drivers').select('*').eq('round_id', activeRound);
             allDriversList = drivers || [];
 
-            // Render wniosków o dołączenie
+            // Render wniosków
             const pending = allDriversList.filter(d => d.status === 'OCZEKUJE');
             const tbody = document.getElementById('req-table-body');
-            tbody.innerHTML = pending.length === 0 ? `<tr><td colspan="4" class="p-3 text-slate-500 text-center italic">Brak oczekujących zgłoszeń zawodników.</td></tr>` : 
+            tbody.innerHTML = pending.length === 0 ? `<tr><td colspan="4" class="p-3 text-slate-500 text-center italic">Brak oczekujących zgłoszeń na tę rundę.</td></tr>` : 
             pending.map(d => `
                 <tr class="hover:bg-slate-900/20">
                     <td class="p-3 font-bold text-white">${d.username}</td>
@@ -98,14 +109,15 @@
                 </tr>
             `).join('');
 
-            // Wypełnij listę rozwijaną kierowców do oceny
+            // Selektor kierowców
             const accepted = allDriversList.filter(d => d.status === 'ZAAKCEPTOWANY');
             const select = document.getElementById('quali-select');
             select.innerHTML = '<option value="">Wybierz kierowcę...</option>' + accepted.map(d => `<option value="${d.id}">${d.username}</option>`).join('');
         }
 
         async function updateStatus(id, newStatus) {
-            await supabaseClient.from('drivers').update({ status: newStatus }).eq('id', id);
+            const activeRound = parseInt(document.getElementById('admin-round-select').value);
+            await supabaseClient.from('drivers').update({ status: newStatus }).eq('id', id).eq('round_id', activeRound);
             loadAdminData();
         }
 
@@ -120,19 +132,20 @@
 
         async function saveScores() {
             const id = document.getElementById('quali-select').value;
-            if(!id) return alert("Wybierz kierowcę z listy!");
+            if(!id) return alert("Wybierz kierowcę!");
+            const activeRound = parseInt(document.getElementById('admin-round-select').value);
             const r1 = parseFloat(document.getElementById('score-r1').value) || 0;
             const r2 = parseFloat(document.getElementById('score-r2').value) || 0;
             const best = Math.max(r1, r2);
 
-            await supabaseClient.from('drivers').update({ score_r1: r1, score_r2: r2, best_score: best }).eq('id', id);
-            alert("Punkty zostały zapisane w bazie danych!");
+            await supabaseClient.from('drivers').update({ score_r1: r1, score_r2: r2, best_score: best }).eq('id', id).eq('round_id', activeRound);
+            alert("Punkty zostały zapisane!");
             loadAdminData();
         }
 
         async function sendToQualiStream() {
             const id = document.getElementById('quali-select').value;
-            if(!id) return alert("Musisz najpierw wybrać kierowcę!");
+            if(!id) return alert("Wybierz kierowcę!");
             const driver = allDriversList.find(d => d.id === id);
             const r1 = parseFloat(document.getElementById('score-r1').value) || 0;
             const r2 = parseFloat(document.getElementById('score-r2').value) || 0;
@@ -141,7 +154,7 @@
                 id: 'current_quali',
                 data: { driver: driver.username, car: driver.car, team: driver.team, country: driver.country, r1: r1.toFixed(2), r2: r2.toFixed(2) }
             });
-            alert("Zaktualizowano grafikę ekranową w OBS!");
+            alert("Wysłano na stream!");
         }
 
         verifyAdmin();
